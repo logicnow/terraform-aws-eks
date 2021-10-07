@@ -16,6 +16,14 @@ data "cloudinit_config" "workers_userdata" {
   }
 }
 
+# Adding in random string to set prefix on worker template to ensure character limit is not breached
+resource "random_string" "suffix" {
+  length = 6
+  special = false
+  upper = false
+  number = false
+}
+
 # This is based on the LT that EKS would create if no custom one is specified (aws ec2 describe-launch-template-versions --launch-template-id xxx)
 # there are several more options one could set but you probably dont need to modify them
 # you can take the default and add your custom AMI and/or custom tags
@@ -25,7 +33,7 @@ data "cloudinit_config" "workers_userdata" {
 resource "aws_launch_template" "workers" {
   for_each = { for k, v in local.node_groups_expanded : k => v if v["create_launch_template"] }
 
-  name_prefix            = local.node_groups_names[each.key]
+  name                   = "${local.node_groups_names[each.key]}-${random_string.suffix.result}"
   description            = format("EKS Managed Node Group custom LT for %s", local.node_groups_names[each.key])
   update_default_version = true
 
